@@ -7,6 +7,7 @@ using UnityEngine.XR.WSA;
 //TODO Add list of components to add to the copied gameobjects
 [RequireComponent(typeof(MeshFilter))]
 public class ArrayModifier : MonoBehaviour {
+	#region ENUMS
 
 	public enum OffsetType{
 		Constant,
@@ -19,6 +20,12 @@ public class ArrayModifier : MonoBehaviour {
 		MergeIndependently,
 		CreateMeshCollider
 	}
+
+	public enum MergeIndependentlyAction{
+		IgnoreMeshColliders,
+		KeepThemAsChildren
+	}
+	#endregion
 
 	#region EXPOSED VARIABLES
 	public OffsetType offsetType;
@@ -37,13 +44,15 @@ public class ArrayModifier : MonoBehaviour {
 	public Vector3 RandomizationUpperBound = Vector3.zero;
 	public Vector3 RandomizationLowerBound= Vector3.zero;
 	
+	//TODO not used right now
 	[Tooltip("Leave copies' colliders as children of this GameObject. If disabled, colliders will be removed")]
 	public bool LeaveCollidersAsChildren = false;
 	[Tooltip("If all Meshes share the same single Material, this property should be set to true.")]
 	public bool MergeSubMeshes = true;
 
 	public ColliderOptions colliderOptions = ColliderOptions.NoCollider;
-	
+	public MergeIndependentlyAction mergeIndipendentlyAction = MergeIndependentlyAction.IgnoreMeshColliders;
+
 	#endregion
 
 	private MeshRenderer renderer; // This gameObj renderer component
@@ -70,10 +79,7 @@ public class ArrayModifier : MonoBehaviour {
 		transform.GetComponent<MeshFilter>().sharedMesh = new Mesh();
 		transform.GetComponent<MeshFilter>().sharedMesh.CombineMeshes(combine);
 		transform.gameObject.SetActive(true);
-		// Scale must be reset
-		transform.localScale = Vector3.one;
-		// Setting the position back to the origin
-		this.transform.position = originalPos;
+
 		// Manage what happens to colliders afterwards
 		HandleColliders();
 		// Destroy all children objects
@@ -83,12 +89,16 @@ public class ArrayModifier : MonoBehaviour {
 		{
 			DestroyImmediate(this);
 		};
+		// Scale must be reset
+		transform.localScale = Vector3.one;
+		// Setting the position back to the origin
+		this.transform.position = originalPos;
 	}
+
 	private void OnValidate()
 	{
 		// renderer can be changed in the editor, it can't really be initialized elsewhere
 		renderer = GetComponent<MeshRenderer>();
-		
 		Rebuild();
 	}
 	
@@ -111,10 +121,7 @@ public class ArrayModifier : MonoBehaviour {
 				foreach(Transform tr in transform){
 					Collider[] childColliders = tr.GetComponents<Collider>();
 					foreach(Collider coll in childColliders){
-						//TODO center is wrong, how to handle?
-						UnityEditorInternal.ComponentUtility.CopyComponent(coll);
-						UnityEditorInternal.ComponentUtility.PasteComponentAsNew(gameObject);
-						
+						CopyCollider(coll);
 					}
 				}
 				break;
@@ -125,7 +132,41 @@ public class ArrayModifier : MonoBehaviour {
 	}
 	
 	private void DestroyColliders(){
+		Collider[] childColliders = GetComponents<Collider>();
+		foreach(Collider col in childColliders){
+			DestroyImmediate(col);
+		}
+	}
 
+	private void CopyCollider(Collider coll){
+		if(coll as BoxCollider){
+			BoxCollider box = coll as BoxCollider;
+			// IS THIS LINE CORRECT?
+			box.center = coll.gameObject.transform.position + box.center;
+			Debug.Log(box.center);
+			UnityEditorInternal.ComponentUtility.CopyComponent(box);
+			UnityEditorInternal.ComponentUtility.PasteComponentAsNew(gameObject);
+		}
+		if(coll as SphereCollider){
+			SphereCollider sphere = coll as SphereCollider;
+			// IS THIS LINE CORRECT?
+			sphere.center = coll.gameObject.transform.position + sphere.center;
+			UnityEditorInternal.ComponentUtility.CopyComponent(sphere);
+			UnityEditorInternal.ComponentUtility.PasteComponentAsNew(gameObject);
+		}
+		if(coll as CapsuleCollider){
+			CapsuleCollider capsule = coll as CapsuleCollider;
+			// IS THIS LINE CORRECT?
+			capsule.center = coll.gameObject.transform.position + capsule.center;
+			UnityEditorInternal.ComponentUtility.CopyComponent(capsule);
+			UnityEditorInternal.ComponentUtility.PasteComponentAsNew(gameObject);
+		}
+		// ADD THORUS
+		// HANDLE MESH
+		if(!(coll as MeshCollider)){
+			UnityEditorInternal.ComponentUtility.CopyComponent(coll);
+			UnityEditorInternal.ComponentUtility.PasteComponentAsNew(gameObject);
+		}
 	}
 
 	private bool Rebuild()

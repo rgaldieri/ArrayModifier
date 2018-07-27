@@ -21,7 +21,8 @@ public class EditorArrayModifier : Editor {
 	private SerializedProperty _leaveCollidersAsChildren;
 	private SerializedProperty _mergeSubMeshes;
 	private SerializedProperty _colliderOptions;
-	
+	private SerializedProperty _mergeIndipendentlyAction;
+
 	// List of all the possible offset types in OffsetType
 	private readonly string[] _offsetTypes = System.Enum.GetNames(typeof(ArrayModifier.OffsetType));
 	
@@ -42,6 +43,7 @@ public class EditorArrayModifier : Editor {
 		_leaveCollidersAsChildren = serializedObject.FindProperty("LeaveCollidersAsChildren");
 		_mergeSubMeshes = serializedObject.FindProperty("MergeSubMeshes");
 		_colliderOptions = serializedObject.FindProperty("colliderOptions");
+		_mergeIndipendentlyAction = serializedObject.FindProperty("mergeIndipendentlyAction");
 		
 		// Initializing the selected offset type local value
 		_selectedOffsetType = _offsetType.enumValueIndex;
@@ -90,6 +92,10 @@ public class EditorArrayModifier : Editor {
 				EditorGUILayout.PropertyField(_leaveCollidersAsChildren);
 				EditorGUILayout.PropertyField(_mergeSubMeshes);
 				EditorGUILayout.PropertyField(_colliderOptions);
+				if(_colliderOptions.enumValueIndex == 2){
+					EditorGUILayout.HelpBox("MeshCollider can't be repositioned in a parent object. You can either ignore mesh colliders only, or keep them in a children object.", MessageType.Warning);
+					EditorGUILayout.PropertyField(_mergeIndipendentlyAction);
+				}
 				EditorGUILayout.BeginHorizontal();
 				GUILayout.FlexibleSpace();
 				if(GUILayout.Button("Merge", GUILayout.Width(90))){
