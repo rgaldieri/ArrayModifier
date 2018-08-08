@@ -14,10 +14,6 @@ public class EditorArrayModifier : Editor {
 	private SerializedProperty _copiesCount;
 	private SerializedProperty _offset;
 
-	private SerializedProperty _isRandomized;
-	private SerializedProperty _randomSeed;
-	private SerializedProperty _randomizationUpperBound;
-	private SerializedProperty _randomizationLowerBound;
 	private SerializedProperty _leaveCollidersAsChildren;
 	private SerializedProperty _mergeSubMeshes;
 	private SerializedProperty _colliderOptions;
@@ -36,10 +32,6 @@ public class EditorArrayModifier : Editor {
 		_offsetType = serializedObject.FindProperty("offsetType");
 		_copiesCount = serializedObject.FindProperty("CopiesCount");
 		_offset = serializedObject.FindProperty("Offset");
-		_isRandomized = serializedObject.FindProperty("IsRandomized");
-		_randomSeed = serializedObject.FindProperty("RandomSeed");
-		_randomizationUpperBound = serializedObject.FindProperty("RandomizationUpperBound");
-		_randomizationLowerBound = serializedObject.FindProperty("RandomizationLowerBound");
 		_leaveCollidersAsChildren = serializedObject.FindProperty("LeaveCollidersAsChildren");
 		_mergeSubMeshes = serializedObject.FindProperty("MergeSubMeshes");
 		_colliderOptions = serializedObject.FindProperty("colliderOptions");
@@ -69,20 +61,6 @@ public class EditorArrayModifier : Editor {
 		EditorGUILayout.PropertyField(_copiesCount);
 		// offset for each axis
 		EditorGUILayout.PropertyField(_offset);
-
-		#region RANDOMIZATION
-			// Randomization options panel
-			EditorGUILayout.PropertyField(_isRandomized);
-			EditorGUI.showMixedValue = false; // Do not want to show randomization options if mixed
-			if(_isRandomized.boolValue){
-				EditorGUI.indentLevel = 1;
-				EditorGUILayout.PropertyField(_randomSeed);
-				EditorGUILayout.PropertyField(_randomizationUpperBound);
-				EditorGUILayout.PropertyField(_randomizationLowerBound);
-				EditorGUI.indentLevel = 0;
-			}
-			EditorGUI.showMixedValue = true;
-		#endregion
 		
 		#region MERGING
 			EditorGUI.indentLevel = 1;
@@ -115,8 +93,5 @@ public class EditorArrayModifier : Editor {
 			serializedObject.ApplyModifiedProperties();
 			SceneView.RepaintAll();
 		}
-		
-
-
 	}
 }

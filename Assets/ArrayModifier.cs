@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.XR.WSA;
 
-//TODO Randomize params, like rotation, texture or position
 //TODO Add list of components to add to the copied gameobjects
 [RequireComponent(typeof(MeshFilter))]
 public class ArrayModifier : MonoBehaviour {
@@ -35,14 +34,6 @@ public class ArrayModifier : MonoBehaviour {
 	
 	// Sensible offset value
 	public Vector3 Offset = Vector3.one; 
-	
-	// Randomization variables
-	public bool IsRandomized = false;
-	[Range(1,10000)]
-	public int RandomSeed = 1;
-	// Randomization bounds
-	public Vector3 RandomizationUpperBound = Vector3.zero;
-	public Vector3 RandomizationLowerBound= Vector3.zero;
 	
 	//TODO not used right now
 	[Tooltip("Leave copies' colliders as children of this GameObject. If disabled, colliders will be removed")]
