@@ -8,8 +8,18 @@ public static class ExtensionMethods {
     public static void DestroyColliders(this GameObject gameobject)
     {
         Collider[] colliders = gameobject.GetComponents<Collider>();
-		foreach(Collider col in colliders){
-            Object.DestroyImmediate(col);
+		foreach(Collider coll in colliders){
+            Object.DestroyImmediate(coll);
+		}
+    }
+
+    public static void DestroyMeshColliders(this GameObject gameobject)
+    {
+        Collider[] colliders = gameobject.GetComponents<Collider>();
+		foreach(Collider coll in colliders){
+            if(coll as MeshCollider){
+              Object.DestroyImmediate(coll);
+            }
 		}
     }
 }

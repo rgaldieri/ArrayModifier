@@ -71,7 +71,7 @@ public class EditorArrayModifier : Editor {
 				EditorGUILayout.PropertyField(_mergeSubMeshes);
 				EditorGUILayout.PropertyField(_colliderOptions);
 				if(_colliderOptions.enumValueIndex == 2){
-					EditorGUILayout.HelpBox("MeshCollider can't be repositioned in a parent object. You can either ignore mesh colliders only, or keep them in a children object.", MessageType.Warning);
+					EditorGUILayout.HelpBox("MeshCollider can't be repositioned in a parent object. You can ignore mesh colliders, keep the parent mesh collider only, or keep them in children GameObjects.", MessageType.Warning);
 					EditorGUILayout.PropertyField(_mergeIndipendentlyAction);
 				}
 				EditorGUILayout.BeginHorizontal();

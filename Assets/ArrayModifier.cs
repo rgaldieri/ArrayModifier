@@ -11,19 +11,22 @@ public class ArrayModifier : MonoBehaviour {
 	public enum OffsetType{
 		Constant,
 		Relative
+		// TODO: WORLDSPACE
 	}
 
 	public enum ColliderOptions{
 		NoCollider,
 		KeepParentOnly,
-		MergeIndependently,
+		CopyOnParent,
 		CreateMeshCollider
 	}
 
 	public enum MergeIndependentlyAction{
-		IgnoreMeshColliders,
+		NoMeshCollider,
+		MeshColliderOnParentOnly,
 		KeepThemAsChildren
 	}
+
 	#endregion
 
 	#region EXPOSED VARIABLES
@@ -42,7 +45,7 @@ public class ArrayModifier : MonoBehaviour {
 	public bool MergeSubMeshes = true;
 
 	public ColliderOptions colliderOptions = ColliderOptions.NoCollider;
-	public MergeIndependentlyAction mergeIndipendentlyAction = MergeIndependentlyAction.IgnoreMeshColliders;
+	public MergeIndependentlyAction mergeIndipendentlyAction = MergeIndependentlyAction.NoMeshCollider;
 
 	#endregion
 
@@ -54,6 +57,8 @@ public class ArrayModifier : MonoBehaviour {
 		// Bringing it to the origin before to do anything
 		Vector3 originalPos = this.transform.position;
 		this.transform.position = Vector3.zero;
+		Quaternion originalRot = this.transform.rotation;
+		this.transform.rotation = Quaternion.identity;
 		
 		// TODO Reparent non-copies items
 		// Create new mesh object
@@ -84,6 +89,7 @@ public class ArrayModifier : MonoBehaviour {
 		transform.localScale = Vector3.one;
 		// Setting the position back to the origin
 		this.transform.position = originalPos;
+		this.transform.rotation = originalRot;
 	}
 
 	private void OnValidate()
@@ -94,7 +100,6 @@ public class ArrayModifier : MonoBehaviour {
 	}
 	
 	private void HandleColliders(){
-		Collider[] colliders = GetComponents<Collider>();
 		switch(colliderOptions){
 			case ColliderOptions.NoCollider:
 				// Destroying previous colliders
@@ -108,33 +113,55 @@ public class ArrayModifier : MonoBehaviour {
 				mc.sharedMesh = gameObject.GetComponent<MeshFilter>().sharedMesh;
 				mc.convex = true;
 				break;
-			case ColliderOptions.MergeIndependently:
-				foreach(Transform tr in transform){
-					Collider[] childColliders = tr.GetComponents<Collider>();
-					foreach(Collider coll in childColliders){
-						CopyCollider(coll);
-					}
+			case ColliderOptions.CopyOnParent:
+				switch(mergeIndipendentlyAction){
+					case MergeIndependentlyAction.NoMeshCollider:
+						DestroyMeshColliders();
+						break;
+					case MergeIndependentlyAction.KeepThemAsChildren:
+					case MergeIndependentlyAction.MeshColliderOnParentOnly:
+					default:
+						break;
 				}
+				CopyCollidersToThis();
 				break;
 			case ColliderOptions.KeepParentOnly:
 			default:
 				break;
 		}
 	}
-	
-	private void DestroyColliders(){
-		Collider[] childColliders = GetComponents<Collider>();
-		foreach(Collider col in childColliders){
-			DestroyImmediate(col);
+
+	private void CopyCollidersToThis(){
+		foreach(Transform tr in transform){
+			Collider[] childColliders = tr.GetComponents<Collider>();
+			foreach(Collider coll in childColliders){
+				// If the collider is a mesh collider
+				if(coll as MeshCollider){
+					// If users wanted it to be treated differently
+					if( mergeIndipendentlyAction == MergeIndependentlyAction.KeepThemAsChildren){
+						CreateMeshColliderChild(tr.gameObject, coll);
+					}
+				} else {
+					CopyStandardCollider(coll);
+				}
+			}
 		}
 	}
 
-	private void CopyCollider(Collider coll){
+	private void DestroyColliders(){
+		this.gameObject.DestroyColliders();
+	}
+
+	private void DestroyMeshColliders(){
+		this.gameObject.DestroyMeshColliders();
+	}
+
+	// Copy a non-mesh collider to the gameObject containing this Component
+	private void CopyStandardCollider(Collider coll){
 		if(coll as BoxCollider){
 			BoxCollider box = coll as BoxCollider;
 			// IS THIS LINE CORRECT?
 			box.center = coll.gameObject.transform.position + box.center;
-			Debug.Log(box.center);
 			UnityEditorInternal.ComponentUtility.CopyComponent(box);
 			UnityEditorInternal.ComponentUtility.PasteComponentAsNew(gameObject);
 		}
@@ -152,12 +179,26 @@ public class ArrayModifier : MonoBehaviour {
 			UnityEditorInternal.ComponentUtility.CopyComponent(capsule);
 			UnityEditorInternal.ComponentUtility.PasteComponentAsNew(gameObject);
 		}
-		// ADD THORUS
-		// HANDLE MESH
-		if(!(coll as MeshCollider)){
-			UnityEditorInternal.ComponentUtility.CopyComponent(coll);
+		if(coll as WheelCollider){
+			WheelCollider wheel = coll as WheelCollider;
+			// IS THIS LINE CORRECT?
+			wheel.center = coll.gameObject.transform.position + wheel.center;
+			UnityEditorInternal.ComponentUtility.CopyComponent(wheel);
 			UnityEditorInternal.ComponentUtility.PasteComponentAsNew(gameObject);
 		}
+	}
+
+	private void CreateMeshColliderChild(GameObject go, Collider coll){
+		GameObject newGo = new GameObject();
+		newGo.name = "MeshCollider_placeholder";
+		newGo.transform.parent = this.transform;
+		newGo.transform.localPosition = go.transform.localPosition;
+		UnityEditorInternal.ComponentUtility.CopyComponent(coll);
+		// It crashes without a delaycall
+		UnityEditor.EditorApplication.delayCall += () =>
+		{
+			UnityEditorInternal.ComponentUtility.PasteComponentAsNew(newGo);
+		};
 	}
 
 	private bool Rebuild()
@@ -177,10 +218,14 @@ public class ArrayModifier : MonoBehaviour {
 	{
 		foreach (Transform t in transform)
 		{
-			UnityEditor.EditorApplication.delayCall += () =>
-			{
-				DestroyImmediate(t.gameObject);
-			};
+			// TODO Checkign whether if it has a MeshFilter is not a strong contorl
+			// Improve with array of children
+			if(t.gameObject.GetComponent<MeshFilter>() != null){
+				UnityEditor.EditorApplication.delayCall += () =>
+				{
+					DestroyImmediate(t.gameObject);
+				};
+			}
 		}
 	}
 
@@ -227,5 +272,8 @@ public class ArrayModifier : MonoBehaviour {
 				UnityEditorInternal.ComponentUtility.PasteComponentAsNew(go);
 			}
 		}
+	}
+	void OnDestroy(){
+		// TODO remove children
 	}
 }

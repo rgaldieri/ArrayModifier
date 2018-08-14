@@ -42,4 +42,5 @@ Temp/
 .vscode/
 .idea/
 Assets/Plugins/
-Assets/Plugins.meta 
+Assets/Plugins.meta
+TestAsset*
