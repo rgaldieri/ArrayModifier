@@ -30,17 +30,15 @@ public class ArrayModifier : MonoBehaviour {
 	#endregion
 
 	#region EXPOSED VARIABLES
+	// Current offset type
 	public OffsetType offsetType;
 
-	// how many copies should this have?
+	// how many copies should it make?
 	public int CopiesCount = 2;
 	
 	// Sensible offset value
 	public Vector3 Offset = Vector3.one; 
 	
-	//TODO not used right now
-	[Tooltip("Leave copies' colliders as children of this GameObject. If disabled, colliders will be removed")]
-	public bool LeaveCollidersAsChildren = false;
 	[Tooltip("If all Meshes share the same single Material, this property should be set to true.")]
 	public bool MergeSubMeshes = true;
 
@@ -51,19 +49,37 @@ public class ArrayModifier : MonoBehaviour {
 
 	private MeshRenderer renderer; // This gameObj renderer component
 	
-	// Transform the current sets of objects into a unique mesh. TODO: Can this operation be reversed?
+	#region UNITY STANDARD FUNCTIONS
+	private void OnValidate()
+	{
+		// renderer can be changed in the editor, it can't really be initialized elsewhere
+		renderer = GetComponent<MeshRenderer>();
+		// Rebuild the status on change
+		if(!(Rebuild())){
+			Debug.LogWarning("This component can't be changed outside Editor mode.");
+		}
+
+	}
+	
+	void OnDestroy(){
+		ClearChildren();
+	}
+	#endregion
+
+	// Transform the current sets of objects into a unique mesh. TODO: make this operation reversible
 	public void Merge()
 	{
-		// Bringing it to the origin before to do anything
+		// Bringing it to the origin will make future calculations simpler
 		Vector3 originalPos = this.transform.position;
-		this.transform.position = Vector3.zero;
 		Quaternion originalRot = this.transform.rotation;
+		this.transform.position = Vector3.zero;
 		this.transform.rotation = Quaternion.identity;
 		
 		// TODO Reparent non-copies items
 		// Create new mesh object
 		MeshFilter[] meshFilters = GetComponentsInChildren<MeshFilter>();
 		CombineInstance[] combine = new CombineInstance[meshFilters.Length];
+		
 		int i = 0;
 		while (i < meshFilters.Length) {
 			combine[i].mesh = meshFilters[i].sharedMesh;
@@ -71,14 +87,15 @@ public class ArrayModifier : MonoBehaviour {
 			meshFilters[i].gameObject.SetActive(false);
 			i++;
 		}
+		
 		// Actually Combining the meshes
 		transform.GetComponent<MeshFilter>().sharedMesh = new Mesh();
-		transform.GetComponent<MeshFilter>().sharedMesh.CombineMeshes(combine);
+		transform.GetComponent<MeshFilter>().sharedMesh.CombineMeshes(combine, MergeSubMeshes);
 		transform.gameObject.SetActive(true);
 
 		// Manage what happens to colliders afterwards
 		HandleColliders();
-		// Destroy all children objects
+		// Destroy all children objects that must be destroyed
 		ClearChildren();
 		// Destroy this component
 		UnityEditor.EditorApplication.delayCall += () =>
@@ -90,13 +107,6 @@ public class ArrayModifier : MonoBehaviour {
 		// Setting the position back to the origin
 		this.transform.position = originalPos;
 		this.transform.rotation = originalRot;
-	}
-
-	private void OnValidate()
-	{
-		// renderer can be changed in the editor, it can't really be initialized elsewhere
-		renderer = GetComponent<MeshRenderer>();
-		Rebuild();
 	}
 	
 	private void HandleColliders(){
@@ -147,69 +157,65 @@ public class ArrayModifier : MonoBehaviour {
 			}
 		}
 	}
-
+	
+	#region EXTENSION METHODS WRAPPER
+	// Destroy all colliders on gameObject
 	private void DestroyColliders(){
 		this.gameObject.DestroyColliders();
 	}
 
+	// Destroy mesh colliders only on gameObject
 	private void DestroyMeshColliders(){
 		this.gameObject.DestroyMeshColliders();
 	}
+	
+	private void PasteComponentOnGameObject(Component c, bool DelayCall = false){
+		gameObject.PasteComponent(c, DelayCall);
+	}
+	#endregion
 
 	// Copy a non-mesh collider to the gameObject containing this Component
 	private void CopyStandardCollider(Collider coll){
 		if(coll as BoxCollider){
 			BoxCollider box = coll as BoxCollider;
-			// IS THIS LINE CORRECT?
 			box.center = coll.gameObject.transform.position + box.center;
-			UnityEditorInternal.ComponentUtility.CopyComponent(box);
-			UnityEditorInternal.ComponentUtility.PasteComponentAsNew(gameObject);
+			PasteComponentOnGameObject(box);
 		}
 		if(coll as SphereCollider){
 			SphereCollider sphere = coll as SphereCollider;
-			// IS THIS LINE CORRECT?
 			sphere.center = coll.gameObject.transform.position + sphere.center;
-			UnityEditorInternal.ComponentUtility.CopyComponent(sphere);
-			UnityEditorInternal.ComponentUtility.PasteComponentAsNew(gameObject);
+			PasteComponentOnGameObject(sphere);
 		}
 		if(coll as CapsuleCollider){
 			CapsuleCollider capsule = coll as CapsuleCollider;
-			// IS THIS LINE CORRECT?
 			capsule.center = coll.gameObject.transform.position + capsule.center;
-			UnityEditorInternal.ComponentUtility.CopyComponent(capsule);
-			UnityEditorInternal.ComponentUtility.PasteComponentAsNew(gameObject);
+			PasteComponentOnGameObject(capsule);
 		}
 		if(coll as WheelCollider){
 			WheelCollider wheel = coll as WheelCollider;
-			// IS THIS LINE CORRECT?
 			wheel.center = coll.gameObject.transform.position + wheel.center;
-			UnityEditorInternal.ComponentUtility.CopyComponent(wheel);
-			UnityEditorInternal.ComponentUtility.PasteComponentAsNew(gameObject);
+			PasteComponentOnGameObject(wheel);
 		}
 	}
 
 	private void CreateMeshColliderChild(GameObject go, Collider coll){
-		GameObject newGo = new GameObject();
-		newGo.name = "MeshCollider_placeholder";
+		GameObject newGo = new GameObject("MeshCollider_placeholder");
 		newGo.transform.parent = this.transform;
 		newGo.transform.localPosition = go.transform.localPosition;
-		UnityEditorInternal.ComponentUtility.CopyComponent(coll);
-		// It crashes without a delaycall
-		UnityEditor.EditorApplication.delayCall += () =>
-		{
-			UnityEditorInternal.ComponentUtility.PasteComponentAsNew(newGo);
-		};
+		// Copy Component to object
+		PasteComponentOnGameObject(coll, true);
 	}
 
 	private bool Rebuild()
 	{
+		// If not in the editor, do not rebuild
 		if(UnityEditor.EditorApplication.isPlayingOrWillChangePlaymode)
 		{
 			return false;
 		}
-		// Destroy existing objects
+		// Destroy existing children
 		ClearChildren();
-		// Make copies for every object
+		// Make CopiesCount copies of this object
 		MakeCopies();
 		return true;
 	}
@@ -233,10 +239,11 @@ public class ArrayModifier : MonoBehaviour {
 	{
 		// Getting the offset for each new object
 		Vector3 currentOffset = (offsetType == OffsetType.Constant) ? Offset : GetRelativeOffset();
-
+		// make CopiesCount - 1 copies
 		for(int i = 1; i < CopiesCount ; i++)
 		{
-			var obj = GetACopy();
+			var obj = MakeSingleCopy();
+			// Offsetting the copy
 			obj.transform.Translate(currentOffset.x * i, currentOffset.y * i, currentOffset.z * i);
 			obj.transform.name = "Copy " + i;
 		}
@@ -248,32 +255,34 @@ public class ArrayModifier : MonoBehaviour {
 			Offset.z * renderer.bounds.size.z);
 	}
 	
-	private GameObject GetACopy()
+	private GameObject MakeSingleCopy()
 	{
+		// Mae a copy
 		var copy = new GameObject();
+		// reparent it
 		copy.transform.parent = gameObject.transform;
-		copy.transform.localPosition = Vector3.zero;
+		// Copy all components (but this)
 		CopyComponents(copy);
 		return copy;
 	}
 
 	private void CopyComponents(GameObject go)
 	{
+		Debug.Log("Called");
 		// Transform doesn't get copied. Doing it manually
-		go.transform.localPosition = Vector3.zero; // position is the same of parent
-		go.transform.localScale = Vector3.one; // Scale is the same of parent
-		go.transform.localRotation = Quaternion.identity;
+		go.transform.LocalReset();
 		var components = GetComponents<Component>();
+		// Copy all component but ArrayModifier
 		foreach (var comp in components)
 		{
+			// Not copying ArrayModifier to avoid recursion
 			if(!(comp as ArrayModifier))
 			{
 				UnityEditorInternal.ComponentUtility.CopyComponent(comp);
 				UnityEditorInternal.ComponentUtility.PasteComponentAsNew(go);
 			}
+			
 		}
 	}
-	void OnDestroy(){
-		// TODO remove children
-	}
+
 }
