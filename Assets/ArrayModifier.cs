@@ -5,6 +5,7 @@ using UnityEngine.XR.WSA;
 
 //TODO Add list of components to add to the copied gameobjects
 [RequireComponent(typeof(MeshFilter))]
+[ExecuteInEditMode]
 public class ArrayModifier : MonoBehaviour {
 	#region ENUMS
 
@@ -51,22 +52,21 @@ public class ArrayModifier : MonoBehaviour {
 
 	private MeshRenderer renderer; // This gameObj renderer component
 	
-	#region UNITY STANDARD FUNCTIONS
-	private void OnValidate()
-	{
-		// renderer can be changed in the editor, it can't really be initialized elsewhere
-		renderer = GetComponent<MeshRenderer>();
-		// Rebuild the status on change
-		if(!(Rebuild())){
-			Debug.LogWarning("This component can't be changed outside Editor mode.");
-		}
-
+	void OnEnable(){
+		StartBuild();
 	}
-
+	
 	void OnDestroy(){
 		ClearChildren();
 	}
-	#endregion
+
+	public void StartBuild(){
+		// renderer can be changed in the editor, it can't really be initialized elsewhere
+		renderer = GetComponent<MeshRenderer>();
+		if(!(Rebuild())){
+			Debug.LogWarning("This component can't be changed outside Editor mode.");
+		}
+	}
 
 	// Transform the current sets of objects into a unique mesh. TODO: make this operation reversible
 	public void Merge()
@@ -232,7 +232,9 @@ public class ArrayModifier : MonoBehaviour {
 			if(t.gameObject.GetComponent<MeshFilter>() != null){
 				UnityEditor.EditorApplication.delayCall += () =>
 				{
-					DestroyImmediate(t.gameObject);
+					if(t != null){
+						DestroyImmediate(t.gameObject);
+					}
 				};
 			}
 		}
@@ -273,7 +275,6 @@ public class ArrayModifier : MonoBehaviour {
 
 	private void CopyComponents(GameObject go)
 	{
-		Debug.Log("Called");
 		// Transform doesn't get copied. Doing it manually
 		go.transform.LocalReset();
 		var components = GetComponents<Component>();

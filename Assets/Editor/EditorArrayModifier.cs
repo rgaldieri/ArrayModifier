@@ -65,7 +65,7 @@ public class EditorArrayModifier : Editor {
 		EditorGUILayout.PropertyField(_offset);
 		// World or local space?
 		EditorGUILayout.PropertyField(_useWorldSpace);
-		
+
 		// Merging options
 		EditorGUI.indentLevel = 1;
 		_showMerge = EditorGUILayout.Foldout(_showMerge, "Merge");
@@ -88,6 +88,16 @@ public class EditorArrayModifier : Editor {
 		}
 		EditorGUI.indentLevel = 0;
 
+		// Useful refresh button
+		EditorGUILayout.BeginHorizontal();
+		GUILayout.FlexibleSpace();
+		if(GUILayout.Button("Refresh", GUILayout.Width(90))){
+			// I don't actually need to do anything, just by clicking,
+			// GUI.changed become true
+		}
+		GUILayout.FlexibleSpace();
+		EditorGUILayout.EndHorizontal();
+		
 		// If anything has been changed, invoke OnValidate
 		if(GUI.changed){
 			// Clamp the number of _copiesCount
@@ -95,6 +105,7 @@ public class EditorArrayModifier : Editor {
 			// apply the changes first. This triggers the OnValidate function 
 			serializedObject.ApplyModifiedProperties();
 			SceneView.RepaintAll();
+			_target.StartBuild();
 		}
 	}
 }

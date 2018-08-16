@@ -12,6 +12,5 @@ A Blender-like array component for Unity. It enables the user to replicate a Gam
 ## future improvements
 
 * Support Collider2D
-* Support Global-Space offset
 * Adding a rebuild button
 * Adding components on children only
