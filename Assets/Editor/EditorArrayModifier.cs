@@ -15,6 +15,7 @@ public class EditorArrayModifier : Editor {
 
 	private SerializedProperty _copiesCount;
 	private SerializedProperty _offset;
+	private SerializedProperty _useWorldSpace;
 
 	private SerializedProperty _mergeSubMeshes;
 	private SerializedProperty _colliderOptions;
@@ -33,6 +34,7 @@ public class EditorArrayModifier : Editor {
 		_offsetType = serializedObject.FindProperty("offsetType");
 		_copiesCount = serializedObject.FindProperty("CopiesCount");
 		_offset = serializedObject.FindProperty("Offset");
+		_useWorldSpace = serializedObject.FindProperty("UseWorldSpace");
 		_mergeSubMeshes = serializedObject.FindProperty("MergeSubMeshes");
 		_colliderOptions = serializedObject.FindProperty("colliderOptions");
 		_mergeIndipendentlyAction = serializedObject.FindProperty("mergeIndipendentlyAction");
@@ -61,6 +63,8 @@ public class EditorArrayModifier : Editor {
 		EditorGUILayout.PropertyField(_copiesCount);
 		// offset for each axis
 		EditorGUILayout.PropertyField(_offset);
+		// World or local space?
+		EditorGUILayout.PropertyField(_useWorldSpace);
 		
 		// Merging options
 		EditorGUI.indentLevel = 1;

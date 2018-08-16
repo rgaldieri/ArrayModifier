@@ -10,8 +10,7 @@ public class ArrayModifier : MonoBehaviour {
 
 	public enum OffsetType{
 		Constant,
-		Relative
-		// TODO: WORLDSPACE
+		Relative,
 	}
 
 	public enum ColliderOptions{
@@ -39,6 +38,9 @@ public class ArrayModifier : MonoBehaviour {
 	// Sensible offset value
 	public Vector3 Offset = Vector3.one; 
 	
+	// If true, use wolrd space, use local space otherwise
+	public bool UseWorldSpace = false;
+
 	[Tooltip("If all Meshes share the same single Material, this property should be set to true.")]
 	public bool MergeSubMeshes = true;
 
@@ -60,7 +62,7 @@ public class ArrayModifier : MonoBehaviour {
 		}
 
 	}
-	
+
 	void OnDestroy(){
 		ClearChildren();
 	}
@@ -108,7 +110,7 @@ public class ArrayModifier : MonoBehaviour {
 		this.transform.position = originalPos;
 		this.transform.rotation = originalRot;
 	}
-	
+	#region COLLIDERS FUNCTIONS
 	private void HandleColliders(){
 		switch(colliderOptions){
 			case ColliderOptions.NoCollider:
@@ -158,22 +160,6 @@ public class ArrayModifier : MonoBehaviour {
 		}
 	}
 	
-	#region EXTENSION METHODS WRAPPER
-	// Destroy all colliders on gameObject
-	private void DestroyColliders(){
-		this.gameObject.DestroyColliders();
-	}
-
-	// Destroy mesh colliders only on gameObject
-	private void DestroyMeshColliders(){
-		this.gameObject.DestroyMeshColliders();
-	}
-	
-	private void PasteComponentOnGameObject(Component c, bool DelayCall = false){
-		gameObject.PasteComponent(c, DelayCall);
-	}
-	#endregion
-
 	// Copy a non-mesh collider to the gameObject containing this Component
 	private void CopyStandardCollider(Collider coll){
 		if(coll as BoxCollider){
@@ -205,6 +191,23 @@ public class ArrayModifier : MonoBehaviour {
 		// Copy Component to object
 		PasteComponentOnGameObject(coll, true);
 	}
+	#endregion
+
+	#region EXTENSION METHODS WRAPPER
+	// Destroy all colliders on gameObject
+	private void DestroyColliders(){
+		this.gameObject.DestroyColliders();
+	}
+
+	// Destroy mesh colliders only on gameObject
+	private void DestroyMeshColliders(){
+		this.gameObject.DestroyMeshColliders();
+	}
+	
+	private void PasteComponentOnGameObject(Component c, bool DelayCall = false){
+		gameObject.PasteComponent(c, DelayCall);
+	}
+	#endregion
 
 	private bool Rebuild()
 	{
@@ -239,15 +242,17 @@ public class ArrayModifier : MonoBehaviour {
 	{
 		// Getting the offset for each new object
 		Vector3 currentOffset = (offsetType == OffsetType.Constant) ? Offset : GetRelativeOffset();
+		Space space = (UseWorldSpace) ? Space.World : Space.Self;
 		// make CopiesCount - 1 copies
 		for(int i = 1; i < CopiesCount ; i++)
 		{
 			var obj = MakeSingleCopy();
 			// Offsetting the copy
-			obj.transform.Translate(currentOffset.x * i, currentOffset.y * i, currentOffset.z * i);
+			obj.transform.Translate(currentOffset.x * i, currentOffset.y * i, currentOffset.z * i, space);
 			obj.transform.name = "Copy " + i;
 		}
 	}
+
 
 	private Vector3 GetRelativeOffset()
 	{
